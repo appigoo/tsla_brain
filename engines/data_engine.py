@@ -50,8 +50,19 @@ def display_name(sym: str) -> str:
 
 @st.cache_data(ttl=300)
 def fetch_price_data(period: str = "3mo", interval: str = "1d") -> pd.DataFrame:
-    """Fetch OHLCV for all symbols. Returns wide DataFrame of Close prices."""
+    """
+    Fetch Close prices for all symbols.
+    Handles all known yfinance MultiIndex column layouts robustly.
+    """
     try:
+        # Try curl_cffi session first (better rate limit bypass)
+        session = None
+        try:
+            from curl_cffi import requests as cf_req
+            session = cf_req.Session(impersonate="chrome110")
+        except Exception:
+            pass
+
         raw = yf.download(
             ALL_SYMBOLS,
             period=period,
@@ -59,19 +70,101 @@ def fetch_price_data(period: str = "3mo", interval: str = "1d") -> pd.DataFrame:
             auto_adjust=True,
             progress=False,
             threads=True,
+            session=session,
         )
-        if isinstance(raw.columns, pd.MultiIndex):
-            close = raw["Close"]
-        else:
-            close = raw[["Close"]] if "Close" in raw.columns else raw
 
-        # Rename ^VIX etc
-        close.columns = [display_name(c) for c in close.columns]
+        close = _extract_close(raw)
+
+        if close.empty or "TSLA" not in close.columns:
+            return _fetch_fallback(period, session)
+
         close = close.ffill().dropna(how="all")
         return close
+
     except Exception as e:
-        st.error(f"Data fetch error: {e}")
+        st.warning(f"Batch fetch failed ({e}), trying individual...")
+        return _fetch_fallback(period)
+
+
+def _extract_close(raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract Close column(s) from yfinance raw output.
+    Handles:
+      - MultiIndex (Price, Ticker)  — yfinance >= 0.2.50 default
+      - MultiIndex (Ticker, Price)  — group_by='ticker'
+      - Flat columns                — single ticker
+    """
+    if raw is None or raw.empty:
         return pd.DataFrame()
+
+    frames = {}
+
+    if isinstance(raw.columns, pd.MultiIndex):
+        lvl0 = list(raw.columns.get_level_values(0).unique())
+        lvl1 = list(raw.columns.get_level_values(1).unique())
+
+        # Case A: (Price, Ticker) — e.g. ("Close", "TSLA")
+        if "Close" in lvl0:
+            close_block = raw["Close"]
+            if isinstance(close_block, pd.Series):
+                close_block = close_block.to_frame(name=lvl1[0] if lvl1 else "TSLA")
+            for col in close_block.columns:
+                name = display_name(str(col))
+                frames[name] = close_block[col]
+
+        # Case B: (Ticker, Price) — e.g. ("TSLA", "Close")
+        elif "Close" in lvl1:
+            for sym in lvl0:
+                try:
+                    s = raw[sym]["Close"]
+                    frames[display_name(str(sym))] = s
+                except Exception:
+                    continue
+
+        # Case C: price fields without "Close" — try lowercase
+        elif "close" in [str(x).lower() for x in lvl0]:
+            for col0, col1 in raw.columns:
+                if str(col0).lower() == "close":
+                    frames[display_name(str(col1))] = raw[(col0, col1)]
+        elif "close" in [str(x).lower() for x in lvl1]:
+            for col0, col1 in raw.columns:
+                if str(col1).lower() == "close":
+                    frames[display_name(str(col0))] = raw[(col0, col1)]
+
+    else:
+        # Flat columns — single ticker download
+        for candidate in ["Close", "close"]:
+            if candidate in raw.columns:
+                # Try to detect which symbol from context
+                frames["TSLA"] = raw[candidate]
+                break
+
+    return pd.DataFrame(frames) if frames else pd.DataFrame()
+
+
+def _fetch_fallback(period: str = "3mo", session=None) -> pd.DataFrame:
+    """Fetch each symbol individually — reliable fallback."""
+    frames = {}
+    for sym in ALL_SYMBOLS:
+        try:
+            kwargs = dict(period=period, interval="1d",
+                         auto_adjust=True, progress=False)
+            if session:
+                kwargs["session"] = session
+            df = yf.download(sym, **kwargs)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            for candidate in ["Close", "close"]:
+                if candidate in df.columns:
+                    s = df[candidate].dropna()
+                    if not s.empty:
+                        frames[display_name(sym)] = s
+                    break
+        except Exception:
+            continue
+    if not frames:
+        return pd.DataFrame()
+    return pd.DataFrame(frames).ffill().dropna(how="all")
 
 
 @st.cache_data(ttl=300)
