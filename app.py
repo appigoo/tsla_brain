@@ -455,10 +455,7 @@ with tab3:
             display_ll = lead_lag[["symbol", "best_lag_bars", "correlation",
                                     "direction", "influence_score"]].copy()
             display_ll.columns = ["Symbol", "Lag (bars)", "Corr", "Direction", "Score"]
-            st.dataframe(
-                display_ll.style.background_gradient(subset=["Score"], cmap="RdYlGn"),
-                use_container_width=True, height=300,
-            )
+            st.dataframe(display_ll, use_container_width=True, height=300)
 
     with col_gr:
         panel_header("Granger 因果（誰引發 TSLA 波動？）")
@@ -579,13 +576,11 @@ with tab4:
     # Contagion table
     panel_header("完整風險傳染衝擊表")
     if not contagion.empty:
-        st.dataframe(
-            contagion.style
-                .background_gradient(subset=["contagion_score"], cmap="Reds")
-                .format({"beta_to_tsla": "{:.4f}", "expected_impact_pct": "{:+.2f}%",
-                         "contagion_score": "{:.4f}"}),
-            use_container_width=True, height=350,
-        )
+        conta_disp = contagion.copy()
+        for col, fmt_str in [("beta_to_tsla", "{:.4f}"), ("expected_impact_pct", "{:+.2f}%"), ("contagion_score", "{:.4f}")]:
+            if col in conta_disp.columns:
+                conta_disp[col] = conta_disp[col].apply(lambda x: fmt_str.format(x) if pd.notna(x) else "—")
+        st.dataframe(conta_disp, use_container_width=True, height=350)
 
     # Correlation breakdown alerts
     panel_header("⚠️ 相關性崩潰警報")
@@ -1380,15 +1375,11 @@ with tab7:
                 "date_reported": "申報日期",
             }
             disp = inst_df[display_cols].rename(columns=rename_map)
-            fmt = {}
-            if "持股(M)" in disp.columns: fmt["持股(M)"] = "{:.1f}"
-            if "市值($B)" in disp.columns: fmt["市值($B)"] = "{:.2f}"
-            if "佔比(%)" in disp.columns: fmt["佔比(%)"] = "{:.2f}"
-            st.dataframe(
-                disp.style.format(fmt),
-                use_container_width=True,
-                height=300,
-            )
+            # Format numeric columns directly (avoid .style to prevent pyarrow dup-col error)
+            for col, fmt_str in [("持股(M)", "{:.1f}"), ("市值($B)", "{:.2f}"), ("佔比(%)", "{:.2f}")]:
+                if col in disp.columns:
+                    disp[col] = disp[col].apply(lambda x: fmt_str.format(x) if pd.notna(x) else "—")
+            st.dataframe(disp, use_container_width=True, height=300)
         else:
             st.info("數據載入中...")
 
@@ -1410,15 +1401,10 @@ with tab7:
                 "date_reported": "申報日期",
             }
             disp_mf = mf_df[display_cols_mf].rename(columns=rename_map_mf)
-            fmt_mf = {}
-            if "持股(M)" in disp_mf.columns: fmt_mf["持股(M)"] = "{:.1f}"
-            if "市值($B)" in disp_mf.columns: fmt_mf["市值($B)"] = "{:.2f}"
-            if "佔比(%)" in disp_mf.columns: fmt_mf["佔比(%)"] = "{:.2f}"
-            st.dataframe(
-                disp_mf.style.format(fmt_mf),
-                use_container_width=True,
-                height=300,
-            )
+            for col, fmt_str in [("持股(M)", "{:.1f}"), ("市值($B)", "{:.2f}"), ("佔比(%)", "{:.2f}")]:
+                if col in disp_mf.columns:
+                    disp_mf[col] = disp_mf[col].apply(lambda x: fmt_str.format(x) if pd.notna(x) else "—")
+            st.dataframe(disp_mf, use_container_width=True, height=300)
         else:
             st.info("共同基金數據載入中...")
 
