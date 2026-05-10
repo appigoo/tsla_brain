@@ -28,7 +28,7 @@ st.set_page_config(
 # ── Imports ───────────────────────────────────────────────────────────────────
 from ui.styles import inject_css, metric_card, regime_badge, panel_header, tweet_card, status_bar
 from engines.data_engine import (
-    fetch_price_data, fetch_current_prices, get_returns,
+    fetch_price_data, get_returns,
     get_rolling_volatility, LAYER_CONFIG, display_name, ALL_SYMBOLS
 )
 from engines.correlation_engine import (
