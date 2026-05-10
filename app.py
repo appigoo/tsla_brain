@@ -65,7 +65,7 @@ inject_css()
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="main-header">⚡ Tesla Market Brain</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sub-header">Real-Time Financial Neural Network · TSLA Super Node Intelligence</div>',
+    '<div class="sub-header">實時金融神經網絡 · TSLA 超級核心智能</div>',
     unsafe_allow_html=True,
 )
 status_bar(datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC"))
@@ -80,19 +80,19 @@ with st.sidebar:
     )
 
     data_period = st.selectbox(
-        "Data Period",
+        "數據週期",
         ["1mo", "3mo", "6mo", "1y"],
         index=1,
     )
 
-    corr_window = st.slider("Correlation Window (days)", 5, 60, 20, 5)
-    corr_threshold = st.slider("Edge Threshold (|ρ|)", 0.1, 0.8, 0.35, 0.05)
-    graph_layout = st.radio("Graph Layout", ["spring", "radial"], horizontal=True)
+    corr_window = st.slider("相關性窗口（天）", 5, 60, 20, 5)
+    corr_threshold = st.slider("邊閾值 (|ρ|)", 0.1, 0.8, 0.35, 0.05)
+    graph_layout = st.radio("圖形佈局", ["spring", "radial"], horizontal=True)
 
     st.markdown("---")
 
     highlight_node = st.selectbox(
-        "Highlight Node",
+        "高亮節點",
         ["None", "TSLA", "NVDA", "META", "QQQ", "VIX", "BTC"],
     )
     if highlight_node == "None":
@@ -106,8 +106,8 @@ with st.sidebar:
         '◈ AI Brain</div>',
         unsafe_allow_html=True,
     )
-    run_ai = st.button("🧠 Generate Market Analysis", use_container_width=True)
-    shock_size = st.slider("TSLA Shock Size (%)", -20, -1, -5, 1)
+    run_ai = st.button("🧠 生成市場分析", use_container_width=True)
+    shock_size = st.slider("TSLA 衝擊幅度 (%)", -20, -1, -5, 1)
 
     st.markdown("---")
 
@@ -117,23 +117,23 @@ with st.sidebar:
         '◈ Narrative Analyzer</div>',
         unsafe_allow_html=True,
     )
-    tweet_input = st.text_area("Analyze Tweet / Headline", height=80,
-                                placeholder="Paste Elon tweet or news headline...")
-    analyze_tweet = st.button("⚡ Analyze Impact", use_container_width=True)
+    tweet_input = st.text_area("分析推文 / 新聞標題", height=80,
+                                placeholder="貼上 Elon 推文或新聞標題...")
+    analyze_tweet = st.button("⚡ 分析影響", use_container_width=True)
 
     st.markdown("---")
-    auto_refresh = st.checkbox("Auto-refresh (5 min)", value=False)
+    auto_refresh = st.checkbox("自動刷新（5分鐘）", value=False)
     if auto_refresh:
         time.sleep(1)
         st.rerun()
 
 
 # ── Data Loading ──────────────────────────────────────────────────────────────
-with st.spinner("⚡ Loading market data..."):
+with st.spinner("⚡ 載入市場數據..."):
     close_df = fetch_price_data(period=data_period)
     # ── Debug info (shows on Streamlit Cloud to diagnose data issues) ──────
     if close_df.empty:
-        st.error("❌ 數據載入失敗 — yfinance 無法取得數據。請稍後重試或刷新頁面。")
+        st.error("❌ 數據載入失敗 — Yahoo Finance 暫時無法連線。請稍後重試或刷新頁面。")
     else:
         n_cols = len(close_df.columns)
         has_tsla = "TSLA" in close_df.columns
@@ -143,7 +143,7 @@ with st.spinner("⚡ Loading market data..."):
     corr_matrix = compute_rolling_correlation(returns, window=corr_window)
 
 # ── Compute Analytics ─────────────────────────────────────────────────────────
-with st.spinner("🔬 Computing neural network..."):
+with st.spinner("🔬 計算神經網絡..."):
     centrality = compute_centrality(corr_matrix, threshold=corr_threshold)
     lead_lag = compute_lead_lag(returns, target="TSLA", max_lag=5)
     hidden_rel = compute_hidden_relationships(returns, target="TSLA")
@@ -170,16 +170,16 @@ else:
 
 with col1:
     color = "#00FF88" if tsla_chg >= 0 else "#FF4444"
-    metric_card("TSLA Price", f"${tsla_latest:.2f}",
+    metric_card("TSLA 股價", f"${tsla_latest:.2f}",
                 f"{'▲' if tsla_chg >= 0 else '▼'} {abs(tsla_chg):.2f}%", color)
 
 with col2:
-    metric_card("TSLA Vol (Ann)", f"{tsla_vol_val:.1f}%",
-                "20D Rolling", "#FFB800")
+    metric_card("TSLA 波動率（年化）", f"{tsla_vol_val:.1f}%",
+                "20日滾動", "#FFB800")
 
 with col3:
     regime_name = regime.get("current_name", "UNKNOWN")
-    metric_card("Market Regime", regime_name[:12], f"Conf: {regime.get('confidence', 0):.0%}")
+    metric_card("市場狀態", regime_name[:12], f"Conf: {regime.get('confidence', 0):.0%}")
 
 with col4:
     # Top leader
@@ -187,35 +187,35 @@ with col4:
         leaders = lead_lag[lead_lag["direction"] == "leads TSLA"]
         top_leader = leaders.iloc[0]["symbol"] if not leaders.empty else "—"
         leader_score = leaders.iloc[0]["influence_score"] if not leaders.empty else 0
-        metric_card("Top TSLA Leader", top_leader, f"Score: {leader_score:.1f}", "#00D4FF")
+        metric_card("TSLA 領先指標", top_leader, f"Score: {leader_score:.1f}", "#00D4FF")
     else:
-        metric_card("Top TSLA Leader", "—", "Calculating...")
+        metric_card("TSLA 領先指標", "—", "計算中...")
 
 with col5:
     if not centrality.empty:
         top_central = centrality.iloc[0]["symbol"]
-        metric_card("Market Brain", top_central, "Highest Centrality", "#FF6B35")
+        metric_card("市場大腦", top_central, "最高中心度", "#FF6B35")
     else:
-        metric_card("Market Brain", "—", "—")
+        metric_card("市場大腦", "—", "—")
 
 with col6:
     if not corr_matrix.empty and "TSLA" in corr_matrix.columns:
         n_strong = max(0, int((corr_matrix["TSLA"].abs() > corr_threshold).sum()) - 1)
-        metric_card("Active TSLA Links", str(n_strong), f"Threshold ρ>{corr_threshold}", "#E31937")
+        metric_card("TSLA 活躍連結", str(n_strong), f"Threshold ρ>{corr_threshold}", "#E31937")
     else:
-        metric_card("Active TSLA Links", "—", "—")
+        metric_card("TSLA 活躍連結", "—", "—")
 
 st.markdown("---")
 
 
 # ── MAIN TABS ─────────────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "🕸️  Force Graph",
-    "📊  Correlations",
-    "⚡  Lead-Lag",
-    "🌊  Contagion",
-    "🧠  AI Brain",
-    "📰  Narrative",
+    "🕸️  力導向圖",
+    "📊  相關性",
+    "⚡  領先滯後",
+    "🌊  風險傳染",
+    "🧠  AI 大腦",
+    "📰  敘事分析",
     "🏦  機構持倉",
 ])
 
@@ -254,11 +254,11 @@ with tab1:
         )
 
     with c_right:
-        panel_header("Regime Status")
+        panel_header("市場狀態")
         regime_badge(regime.get("current_name", "UNKNOWN"), regime.get("current_color", "#888"))
 
         st.markdown("<br>", unsafe_allow_html=True)
-        panel_header("Centrality Ranking")
+        panel_header("中心度排名")
         if not centrality.empty:
             for _, row in centrality.head(8).iterrows():
                 bar_w = int(row["eigenvector"] * 100)
@@ -282,7 +282,7 @@ with tab1:
                 )
 
         st.markdown("<br>", unsafe_allow_html=True)
-        panel_header("Layer Legend")
+        panel_header("層級圖例")
         for layer, cfg in LAYER_CONFIG.items():
             st.markdown(
                 f'<div style="font-family:\'IBM Plex Mono\';font-size:9px;margin-bottom:4px">'
@@ -293,7 +293,7 @@ with tab1:
             )
 
         st.markdown("<br>", unsafe_allow_html=True)
-        panel_header("Correlation Breakdown")
+        panel_header("相關性異常警報")
         if not breakdown.empty:
             breaking = breakdown[breakdown["signal"].str.contains("Breaking|Strengthen")]
             if not breaking.empty:
@@ -319,12 +319,12 @@ with tab2:
     col_h, col_ts = st.columns([1, 1])
 
     with col_h:
-        panel_header("Correlation Matrix")
+        panel_header("相關性矩陣")
         fig_heat = render_correlation_heatmap(corr_matrix)
         st.plotly_chart(fig_heat, use_container_width=True, key="pc_heat")
 
     with col_ts:
-        panel_header("TSLA Correlation Timeseries")
+        panel_header("TSLA 相關性時序")
         corr_ts = correlation_timeseries(returns, "TSLA", window=corr_window)
         if not corr_ts.empty:
             top_assets = ["NVDA", "QQQ", "SPY", "ARKK", "BTC", "VIX"]
@@ -348,7 +348,7 @@ with tab2:
 
             fig_ts.update_layout(
                 title=dict(
-                    text=f"<b>Rolling {corr_window}D Correlation vs TSLA</b>",
+                    text=f"<b>滾動 {corr_window} 日相關性 vs TSLA</b>",
                     font=dict(family="IBM Plex Mono", size=13, color="#E8E0D0"),
                     x=0.5,
                 ),
@@ -368,10 +368,10 @@ with tab2:
             )
             st.plotly_chart(fig_ts, use_container_width=True, key="pc_ts")
         else:
-            st.info("Insufficient data for timeseries.")
+            st.info("數據不足，無法生成時序圖。")
 
     # Hidden Relationships
-    panel_header("Hidden Non-Linear Relationships (Mutual Information)")
+    panel_header("隱藏非線性關係（互信息）")
     if not hidden_rel.empty:
         top_hidden = hidden_rel.head(12)
         cols_hr = st.columns(4)
@@ -401,7 +401,7 @@ with tab3:
     col_ll, col_gr = st.columns([1, 1])
 
     with col_ll:
-        panel_header("Lead-Lag Analysis (Cross-Correlation)")
+        panel_header("領先滯後分析（交叉相關）")
         if not lead_lag.empty:
             fig_ll = go.Figure()
 
@@ -432,7 +432,7 @@ with tab3:
 
             fig_ll.update_layout(
                 title=dict(
-                    text="<b>Lead-Lag Influence Scores</b>",
+                    text="<b>領先滯後影響力評分</b>",
                     font=dict(family="IBM Plex Mono", size=13, color="#E8E0D0"),
                     x=0.5,
                 ),
@@ -461,7 +461,7 @@ with tab3:
             )
 
     with col_gr:
-        panel_header("Granger Causality (Who Causes TSLA Moves?)")
+        panel_header("Granger 因果（誰引發 TSLA 波動？）")
         granger = compute_granger_scores(returns, target="TSLA")
         if not granger.empty:
             top_granger = granger.head(10)
@@ -484,7 +484,7 @@ with tab3:
 
             fig_gr.update_layout(
                 title=dict(
-                    text="<b>Granger Causality F-Statistics</b>",
+                    text="<b>Granger 因果 F 統計量</b>",
                     font=dict(family="IBM Plex Mono", size=13, color="#E8E0D0"),
                     x=0.5,
                 ),
@@ -499,7 +499,7 @@ with tab3:
             st.plotly_chart(fig_gr, use_container_width=True, key="pc_gr")
 
         # Regime History
-        panel_header("Regime History")
+        panel_header("市場狀態歷史")
         if not regime["history"].empty and "regime_name" in regime["history"].columns:
             hist = regime["history"].tail(60).copy()
             hist["regime_id"] = hist["regime_id"].astype(float)
@@ -518,14 +518,14 @@ with tab3:
 
             fig_reg.update_layout(
                 title=dict(
-                    text="<b>Market Regime Timeline</b>",
+                    text="<b>市場狀態時間軸</b>",
                     font=dict(family="IBM Plex Mono", size=13, color="#E8E0D0"),
                     x=0.5,
                 ),
                 paper_bgcolor="#0A0E1A", plot_bgcolor="#0A0E1A",
                 yaxis=dict(
                     tickvals=[0, 1, 2, 3, 4],
-                    ticktext=["RISK-ON", "NEUTRAL", "RISK-OFF", "PANIC", "AI MANIA"],
+                    ticktext=["風險偏好", "中性", "風險規避", "恐慌", "AI 狂熱"],
                     tickfont=dict(color="#E8E0D0", size=8),
                     gridcolor="#1A2A3A",
                 ),
@@ -542,12 +542,12 @@ with tab4:
     col_c1, col_c2 = st.columns([1, 1])
 
     with col_c1:
-        panel_header(f"Risk Contagion: TSLA {shock_size}% Shock")
+        panel_header(f"風險傳染：TSLA {shock_size}% 衝擊模擬")
         fig_conta = render_contagion_chart(contagion)
         st.plotly_chart(fig_conta, use_container_width=True, key="pc_conta")
 
     with col_c2:
-        panel_header("Volatility Clustering (Annualised)")
+        panel_header("波動率聚類（年化）")
         if not vol_clusters.empty:
             plot_vols = [c for c in ["TSLA", "NVDA", "QQQ", "VIX", "BTC"] if c in vol_clusters.columns]
             fig_vol = go.Figure()
@@ -563,21 +563,21 @@ with tab4:
 
             fig_vol.update_layout(
                 title=dict(
-                    text="<b>Rolling Volatility (%)</b>",
+                    text="<b>滾動波動率 (%)</b>",
                     font=dict(family="IBM Plex Mono", size=13, color="#E8E0D0"),
                     x=0.5,
                 ),
                 paper_bgcolor="#0A0E1A", plot_bgcolor="#0A0E1A",
                 xaxis=dict(gridcolor="#1A2A3A", tickfont=dict(color="#E8E0D0", size=9)),
                 yaxis=dict(gridcolor="#1A2A3A", tickfont=dict(color="#E8E0D0", size=9),
-                           title="Ann. Vol %", titlefont=dict(color="#556677")),
+                           title="年化波動率 %", titlefont=dict(color="#556677")),
                 legend=dict(font=dict(color="#E8E0D0"), bgcolor="rgba(0,0,0,0.5)"),
                 height=380, margin=dict(l=50, r=20, t=50, b=40),
             )
             st.plotly_chart(fig_vol, use_container_width=True, key="pc_vol")
 
     # Contagion table
-    panel_header("Full Contagion Impact Table")
+    panel_header("完整風險傳染衝擊表")
     if not contagion.empty:
         st.dataframe(
             contagion.style
@@ -588,7 +588,7 @@ with tab4:
         )
 
     # Correlation breakdown alerts
-    panel_header("⚠️ Correlation Breakdown Alerts")
+    panel_header("⚠️ 相關性崩潰警報")
     if not breakdown.empty:
         alerts = breakdown[~breakdown["signal"].str.contains("Stable")]
         if not alerts.empty:
@@ -602,7 +602,7 @@ with tab4:
                     unsafe_allow_html=True,
                 )
         else:
-            st.info("No correlation breakdowns detected.")
+            st.info("未偵測到相關性異常。")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -716,13 +716,13 @@ with tab5:
                 )
 
         with col_b2:
-            panel_header("Market Summary Dashboard")
+            panel_header("市場摘要儀表板")
             st.markdown("**Current Regime:**")
             regime_badge(regime.get("current_name", "UNKNOWN"), regime.get("current_color", "#888"))
             st.markdown(f"*Confidence: {regime.get('confidence', 0):.0%}*")
             st.markdown("<br>", unsafe_allow_html=True)
 
-            panel_header("TSLA Top Correlations")
+            panel_header("TSLA 頂部相關資產")
             if not corr_matrix.empty and "TSLA" in corr_matrix.columns:
                 tsla_corr = corr_matrix["TSLA"].drop("TSLA").sort_values(ascending=False)
                 for sym, val in tsla_corr.head(8).items():
@@ -740,7 +740,7 @@ with tab5:
                     )
 
             st.markdown("<br>", unsafe_allow_html=True)
-            panel_header("Top Leaders → TSLA")
+            panel_header("TSLA 領先指標排名")
             if not lead_lag.empty:
                 leaders_ai = lead_lag[lead_lag["direction"] == "leads TSLA"].head(5)
                 for _, row in leaders_ai.iterrows():
@@ -963,7 +963,7 @@ with tab6:
     col_n1, col_n2 = st.columns([1, 1])
 
     with col_n1:
-        panel_header("📡 Live News Feed")
+        panel_header("📡 實時新聞")
         news_df = fetch_news_feed(max_items=25)
         if not news_df.empty:
             # Category filter
@@ -975,7 +975,7 @@ with tab6:
             st.info("📡 Loading news feed... (requires internet)")
 
     with col_n2:
-        panel_header("𝕏 Elon Narrative Feed")
+        panel_header("𝕏 Elon 敘事推文")
         st.markdown(
             '<div style="font-family:\'IBM Plex Mono\';font-size:8px;color:#334455;'
             'margin-bottom:10px">Simulated feed (X API requires premium subscription)</div>',
@@ -987,7 +987,7 @@ with tab6:
             tweet_card(t["text"], t["time"], t["likes"], t["category"])
 
         st.markdown("<br>", unsafe_allow_html=True)
-        panel_header("Elon Narrative Classification")
+        panel_header("Elon 敘事分類")
 
         # Pie chart of tweet categories
         cat_counts = {}
@@ -1437,7 +1437,7 @@ st.markdown("---")
 st.markdown(
     """<div style="font-family:'IBM Plex Mono';font-size:0.6rem;color:#223344;text-align:center;padding:8px">
     ⚠️ TESLA MARKET BRAIN · For research purposes only · Not financial advice ·
-    Data: Yahoo Finance · AI: Claude Sonnet 4 · Architecture: Streamlit Cloud
+    數據：Yahoo Finance · AI：Groq llama-3.3 · 架構：Streamlit Cloud
     </div>""",
     unsafe_allow_html=True,
 )
