@@ -45,6 +45,7 @@ def fetch_tsla_institutional_holders() -> pd.DataFrame:
             return _get_fallback_holdings()
 
         inst = inst.copy()
+        inst = inst.loc[:, ~inst.columns.duplicated()]
         # Normalise column names across yfinance versions
         col_map = {}
         for c in inst.columns:
@@ -95,6 +96,8 @@ def fetch_tsla_mutualfund_holders() -> pd.DataFrame:
             return pd.DataFrame()
 
         mf = mf.copy()
+        # Remove duplicate columns before processing
+        mf = mf.loc[:, ~mf.columns.duplicated()]
         col_map = {}
         for c in mf.columns:
             cl = str(c).lower()
