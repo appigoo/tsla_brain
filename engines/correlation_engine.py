@@ -155,6 +155,8 @@ def compute_granger_scores(returns: pd.DataFrame, target: str = "TSLA",
             "net_influence": round(f_x_causes_tsla - f_tsla_causes_x, 2),
         })
 
+    if not results:
+        return pd.DataFrame(columns=["symbol","causes_tsla_f","tsla_causes_f","net_influence"])
     return pd.DataFrame(results).sort_values("causes_tsla_f", ascending=False)
 
 
@@ -212,6 +214,8 @@ def compute_hidden_relationships(returns: pd.DataFrame, target: str = "TSLA") ->
             "relationship_type": "Non-linear" if hidden_score > 0.05 else "Linear",
         })
 
+    if not results:
+        return pd.DataFrame(columns=["symbol","linear_corr","mutual_info","hidden_score","relationship_type"])
     return pd.DataFrame(results).sort_values("hidden_score", ascending=False)
 
 
@@ -283,4 +287,6 @@ def compute_risk_contagion(returns: pd.DataFrame, shock_asset: str = "TSLA",
             ),
         })
 
+    if not results:
+        return pd.DataFrame(columns=["symbol","beta_to_tsla","expected_impact_pct","contagion_score","direction"])
     return pd.DataFrame(results).sort_values("contagion_score", ascending=False)
