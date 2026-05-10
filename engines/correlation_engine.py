@@ -82,6 +82,8 @@ def compute_lead_lag(returns: pd.DataFrame, target: str = "TSLA",
             "influence_score": round(abs(best_corr) * 100, 1),
         })
 
+    if not results:
+        return pd.DataFrame(columns=["symbol","best_lag_bars","correlation","direction","influence_score"])
     df = pd.DataFrame(results).sort_values("influence_score", ascending=False)
     return df
 
