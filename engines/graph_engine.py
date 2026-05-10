@@ -164,16 +164,16 @@ def render_force_graph(
         x0, y0 = pos[src]
         x1, y1 = pos[tgt]
         color = data.get("color", "#444")
-        width = data.get("width", 1)
-        corr = data.get("corr", 0)
+        width = float(data.get("width", 1))
+        corr = float(data.get("corr", 0))
         is_highlighted = highlight_node and highlight_node in (src, tgt)
 
         edge_traces.append(go.Scatter(
-            x=[x0, x1, None],
-            y=[y0, y1, None],
+            x=[float(x0), float(x1), None],
+            y=[float(y0), float(y1), None],
             mode="lines",
             line=dict(
-                width=width * (1.8 if is_highlighted else 1.0),
+                width=round(width * (1.8 if is_highlighted else 1.0), 3),
                 color=color if not is_highlighted else "#FFFFFF",
             ),
             opacity=0.85 if is_highlighted else 0.45,
@@ -191,8 +191,8 @@ def render_force_graph(
         if node not in pos:
             continue
         x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
+        node_x.append(float(x))
+        node_y.append(float(y))
 
         is_tsla = data.get("is_tsla", False)
         is_hl = highlight_node == node
@@ -201,7 +201,7 @@ def render_force_graph(
         node_color.append("#E31937" if is_tsla else (
             "#FFFFFF" if is_hl else data.get("color", "#888888")
         ))
-        node_size.append(data.get("size", 20) * (1.3 if is_hl else 1.0))
+        node_size.append(float(data.get("size", 20)) * (1.3 if is_hl else 1.0))
         node_symbols.append("star" if is_tsla else "circle")
 
         layer = data.get("layer", "Unknown")
