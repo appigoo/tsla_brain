@@ -67,6 +67,8 @@ def build_correlation_graph(
             if i >= j:
                 continue
             corr_val = corr_matrix.loc[sym_a, sym_b]
+            if not (corr_val == corr_val):  # NaN check
+                continue
             if abs(corr_val) < threshold:
                 continue
 
@@ -173,7 +175,7 @@ def render_force_graph(
             y=[float(y0), float(y1), None],
             mode="lines",
             line=dict(
-                width=float(round(float(width) * (1.8 if is_highlighted else 1.0), 3)),
+                width=max(0.5, float(width * (1.8 if is_highlighted else 1.0)) if (width == width) else 1.0),
                 color=color if not is_highlighted else "#FFFFFF",
             ),
             opacity=0.85 if is_highlighted else 0.45,
