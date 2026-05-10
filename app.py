@@ -54,6 +54,11 @@ from engines.ai_brain import (
 from engines.news_engine import (
     fetch_news_feed, render_news_feed, get_simulated_tweets
 )
+from engines.holdings_engine import (
+    fetch_tsla_institutional_holders, fetch_tsla_mutualfund_holders,
+    compute_qoq_changes, fetch_ark_tsla_position,
+    get_ownership_summary, TOP_FUNDS, FUND_COLORS, FUND_TYPES,
+)
 
 inject_css()
 
@@ -204,13 +209,14 @@ st.markdown("---")
 
 
 # ── MAIN TABS ─────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🕸️  Force Graph",
     "📊  Correlations",
     "⚡  Lead-Lag",
     "🌊  Contagion",
     "🧠  AI Brain",
     "📰  Narrative",
+    "🏦  機構持倉",
 ])
 
 
@@ -1012,6 +1018,419 @@ with tab6:
             )],
         )
         st.plotly_chart(fig_pie, use_container_width=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 7 — 機構持倉追蹤 (Institutional Holdings)
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab7:
+
+    panel_header("🏦 TSLA 十大機構持倉 — 季度追蹤")
+
+    # ── 數據載入 ──────────────────────────────────────────────────────────────
+    with st.spinner("📡 載入機構持倉數據..."):
+        inst_df   = fetch_tsla_institutional_holders()
+        top10_df  = compute_qoq_changes(inst_df)
+        ownership = get_ownership_summary()
+        ark_data  = fetch_ark_tsla_position()
+
+    # ── 頂部概覽指標 ──────────────────────────────────────────────────────────
+    ow_c1, ow_c2, ow_c3, ow_c4, ow_c5 = st.columns(5)
+
+    with ow_c1:
+        metric_card(
+            "機構持股比例",
+            f"{ownership['institutional_pct']:.1f}%",
+            "Institutional",
+            "#00D4FF",
+        )
+    with ow_c2:
+        metric_card(
+            "內部人持股",
+            f"{ownership['insider_pct']:.1f}%",
+            "Insiders",
+            "#FFB800",
+        )
+    with ow_c3:
+        metric_card(
+            "流通股",
+            f"{ownership['float_shares']:.2f}B",
+            "Float Shares",
+            "#00FF88",
+        )
+    with ow_c4:
+        metric_card(
+            "空頭比例",
+            f"{ownership['short_pct_float']:.1f}%",
+            f"Short Ratio: {ownership['short_ratio']:.1f}",
+            "#FF4444",
+        )
+    with ow_c5:
+        metric_card(
+            "總發行股數",
+            f"{ownership['shares_outstanding']:.2f}B",
+            "Outstanding",
+            "#888888",
+        )
+
+    st.markdown("---")
+
+    # ── 兩欄主體 ──────────────────────────────────────────────────────────────
+    h_col1, h_col2 = st.columns([3, 2])
+
+    with h_col1:
+        panel_header("十大基金持倉詳情 + 季度變化")
+
+        if not top10_df.empty:
+            # ── 持倉條形圖 ────────────────────────────────────────────────────
+            fig_hold = go.Figure()
+
+            # Current holdings bar
+            fig_hold.add_trace(go.Bar(
+                x=top10_df["shares_m"].fillna(0),
+                y=top10_df["short_name"].fillna(top10_df["fund_name"]),
+                orientation="h",
+                name="當前持股 (M股)",
+                marker=dict(
+                    color=[FUND_COLORS.get(n, "#888") for n in top10_df["fund_name"]],
+                    opacity=0.85,
+                    line=dict(color="#0A1020", width=1),
+                ),
+                hovertemplate=(
+                    "<b>%{y}</b><br>"
+                    "持股: %{x:.1f}M 股<br>"
+                    "<extra></extra>"
+                ),
+                text=[f"{v:.1f}M" if v > 0 else "N/A"
+                      for v in top10_df["shares_m"].fillna(0)],
+                textposition="outside",
+                textfont=dict(color="#E8E0D0", size=9, family="IBM Plex Mono"),
+            ))
+
+            # QoQ change markers
+            if "qoq_shares_m" in top10_df.columns:
+                fig_hold.add_trace(go.Scatter(
+                    x=top10_df["qoq_shares_m"].fillna(0),
+                    y=top10_df["short_name"].fillna(top10_df["fund_name"]),
+                    mode="markers",
+                    name="季度變化 (M股)",
+                    marker=dict(
+                        symbol="diamond",
+                        size=10,
+                        color=["#00FF88" if v >= 0 else "#FF4444"
+                               for v in top10_df["qoq_shares_m"].fillna(0)],
+                        line=dict(color="#0A1020", width=1),
+                    ),
+                    hovertemplate=(
+                        "<b>%{y}</b><br>"
+                        "QoQ 變化: %{x:+.1f}M 股<br>"
+                        "<extra></extra>"
+                    ),
+                ))
+
+            fig_hold.update_layout(
+                title=dict(
+                    text="<b>十大機構持股量 + 季度增減</b>",
+                    font=dict(family="IBM Plex Mono", size=13, color="#E8E0D0"),
+                    x=0.5,
+                ),
+                paper_bgcolor="#0A0E1A",
+                plot_bgcolor="#0A0E1A",
+                xaxis=dict(
+                    title="持股數量（百萬股）",
+                    titlefont=dict(color="#556677"),
+                    tickfont=dict(color="#E8E0D0", size=9),
+                    gridcolor="#1A2A3A",
+                    zeroline=True,
+                    zerolinecolor="#334455",
+                ),
+                yaxis=dict(
+                    tickfont=dict(color="#E8E0D0", size=10),
+                    autorange="reversed",
+                ),
+                legend=dict(
+                    font=dict(color="#E8E0D0", size=9),
+                    bgcolor="rgba(0,0,0,0.5)",
+                    x=0.6, y=0.05,
+                ),
+                height=420,
+                margin=dict(l=80, r=100, t=60, b=40),
+                barmode="overlay",
+            )
+            st.plotly_chart(fig_hold, use_container_width=True)
+
+            # ── 詳細數據表格 ──────────────────────────────────────────────────
+            panel_header("持倉數據明細")
+
+            for _, row in top10_df.iterrows():
+                fname   = str(row.get("fund_name", ""))
+                sname   = str(row.get("short_name", fname[:12]))
+                ftype   = str(row.get("fund_type", ""))
+                color   = str(row.get("color", "#888"))
+                shares  = float(row.get("shares_m", 0) or 0)
+                val_b   = float(row.get("value_b", 0) or 0)
+                pct     = float(row.get("pct_held", 0) or 0)
+                qoq     = float(row.get("qoq_shares_m", 0) or 0)
+                qoq_pct = float(row.get("qoq_pct", 0) or 0)
+                action  = str(row.get("action", "⚪ 持平"))
+                date_r  = str(row.get("date_reported", "N/A"))
+
+                qoq_color = "#00FF88" if qoq >= 0 else "#FF4444"
+                bar_w = min(int(shares / 3), 100)  # scale to max ~300M
+
+                st.markdown(
+                    f"""<div style="
+                        background:#0C1520;
+                        border:1px solid #1A2A3A;
+                        border-left:3px solid {color};
+                        border-radius:0 6px 6px 0;
+                        padding:10px 14px;
+                        margin-bottom:6px;
+                        font-family:'IBM Plex Mono';
+                    ">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                            <div>
+                                <span style="color:{color};font-size:11px;font-weight:600">{sname}</span>
+                                <span style="color:#445566;font-size:9px;margin-left:8px">{ftype}</span>
+                            </div>
+                            <span style="color:{qoq_color};font-size:11px">{action} {qoq_pct:+.1f}%</span>
+                        </div>
+                        <div style="display:flex;gap:24px;font-size:9px;color:#C8C0B0;margin-bottom:6px">
+                            <span>持股: <b style="color:#E8E0D0">{shares:.1f}M 股</b></span>
+                            <span>市值: <b style="color:#E8E0D0">${val_b:.1f}B</b></span>
+                            <span>佔比: <b style="color:#E8E0D0">{pct:.2f}%</b></span>
+                            <span style="color:#445566">截至: {date_r}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <div style="flex:1;background:#0D1626;border-radius:2px;height:4px">
+                                <div style="background:{color};width:{bar_w}%;height:4px;border-radius:2px;opacity:0.7"></div>
+                            </div>
+                            <span style="color:{qoq_color};font-size:9px;width:60px;text-align:right">
+                                QoQ: {qoq:+.1f}M
+                            </span>
+                        </div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("⏳ 持倉數據載入中...")
+
+    with h_col2:
+
+        # ── 持股比例 Donut Chart ───────────────────────────────────────────────
+        panel_header("持股結構概覽")
+
+        if not top10_df.empty:
+            labels_pie = list(top10_df["short_name"].fillna(top10_df["fund_name"]))
+            values_pie = list(top10_df["shares_m"].fillna(0))
+            colors_pie = [FUND_COLORS.get(n, "#888") for n in top10_df["fund_name"]]
+
+            # Add "其他機構" slice
+            total_top10 = sum(values_pie)
+            other_inst  = max(0, ownership["institutional_pct"] / 100 *
+                              ownership["shares_outstanding"] * 1000 - total_top10)
+            if other_inst > 0:
+                labels_pie.append("其他機構")
+                values_pie.append(other_inst)
+                colors_pie.append("#334455")
+
+            fig_donut = go.Figure(go.Pie(
+                labels=labels_pie,
+                values=values_pie,
+                hole=0.55,
+                marker=dict(colors=colors_pie, line=dict(color="#060B18", width=2)),
+                textinfo="none",
+                hovertemplate="<b>%{label}</b><br>%{value:.1f}M 股<br>%{percent}<extra></extra>",
+            ))
+            fig_donut.update_layout(
+                title=dict(
+                    text="<b>機構持股分佈</b>",
+                    font=dict(family="IBM Plex Mono", size=12, color="#E8E0D0"),
+                    x=0.5,
+                ),
+                paper_bgcolor="#0A0E1A",
+                legend=dict(
+                    font=dict(color="#E8E0D0", size=8),
+                    bgcolor="rgba(0,0,0,0)",
+                ),
+                annotations=[dict(
+                    text=f"{ownership['institutional_pct']:.0f}%<br><span style='font-size:8px'>機構</span>",
+                    font=dict(family="IBM Plex Mono", size=14, color="#E8E0D0"),
+                    showarrow=False,
+                )],
+                height=300,
+                margin=dict(l=10, r=10, t=50, b=10),
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+
+        # ── QoQ 增減排名 ─────────────────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        panel_header("季度增減排名 (QoQ)")
+
+        if not top10_df.empty and "qoq_shares_m" in top10_df.columns:
+            sorted_qoq = top10_df.sort_values("qoq_shares_m", ascending=False)
+
+            fig_qoq = go.Figure(go.Bar(
+                x=sorted_qoq["qoq_shares_m"].fillna(0),
+                y=sorted_qoq["short_name"].fillna(sorted_qoq["fund_name"]),
+                orientation="h",
+                marker=dict(
+                    color=["#00FF88" if v >= 0 else "#FF4444"
+                           for v in sorted_qoq["qoq_shares_m"].fillna(0)],
+                    opacity=0.85,
+                ),
+                hovertemplate="<b>%{y}</b><br>QoQ: %{x:+.1f}M 股<extra></extra>",
+                text=[f"{v:+.1f}M" for v in sorted_qoq["qoq_shares_m"].fillna(0)],
+                textposition="outside",
+                textfont=dict(color="#E8E0D0", size=9, family="IBM Plex Mono"),
+            ))
+            fig_qoq.add_vline(x=0, line_color="#334455", line_width=1)
+            fig_qoq.update_layout(
+                title=dict(
+                    text="<b>季度增減（估算）</b>",
+                    font=dict(family="IBM Plex Mono", size=11, color="#E8E0D0"),
+                    x=0.5,
+                ),
+                paper_bgcolor="#0A0E1A",
+                plot_bgcolor="#0A0E1A",
+                xaxis=dict(
+                    tickfont=dict(color="#E8E0D0", size=8),
+                    gridcolor="#1A2A3A",
+                    zeroline=False,
+                ),
+                yaxis=dict(
+                    tickfont=dict(color="#E8E0D0", size=9),
+                    autorange="reversed",
+                ),
+                height=320,
+                margin=dict(l=70, r=60, t=40, b=20),
+                showlegend=False,
+            )
+            st.plotly_chart(fig_qoq, use_container_width=True)
+
+        # ── ARK 持倉（每日更新）──────────────────────────────────────────────
+        st.markdown("<br>", unsafe_allow_html=True)
+        panel_header("ARK Invest 每日持倉")
+
+        if ark_data:
+            for fund_name, data in ark_data.items():
+                weight = data.get("weight", 0)
+                shares = data.get("shares", 0) / 1e6
+                mktval = data.get("market_value", 0) / 1e6
+                date_s = data.get("date", "N/A")
+                st.markdown(
+                    f"""<div style="
+                        background:#0C1520;border:1px solid #1A2A3A;
+                        border-left:3px solid #FF6B35;border-radius:0 6px 6px 0;
+                        padding:8px 12px;margin-bottom:6px;font-family:'IBM Plex Mono'
+                    ">
+                        <span style="color:#FF6B35;font-size:10px;font-weight:600">{fund_name}</span>
+                        <span style="color:#445566;font-size:8px;margin-left:6px">{date_s}</span><br>
+                        <span style="font-size:9px;color:#C8C0B0">
+                            持股: <b style="color:#E8E0D0">{shares:.2f}M</b> ·
+                            市值: <b style="color:#E8E0D0">${mktval:.1f}M</b> ·
+                            權重: <b style="color:#FFB800">{weight:.1f}%</b>
+                        </span>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+        else:
+            # ARK website blocked — show estimated data
+            st.markdown(
+                """<div style="
+                    background:#0C1520;border:1px solid #1A2A3A;
+                    border-left:3px solid #FF6B35;border-radius:0 6px 6px 0;
+                    padding:8px 12px;margin-bottom:6px;font-family:'IBM Plex Mono'
+                ">
+                    <span style="color:#FF6B35;font-size:10px;font-weight:600">ARKK</span>
+                    <span style="color:#445566;font-size:8px;margin-left:6px">估算數據</span><br>
+                    <span style="font-size:9px;color:#C8C0B0">
+                        持股: <b style="color:#E8E0D0">~52M</b> ·
+                        權重: <b style="color:#FFB800">~6-8%</b>
+                    </span>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div style="font-family:\'IBM Plex Mono\';font-size:8px;color:#334455">'
+                '💡 ARK 每日更新：ark-funds.com/funds/arkk</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── 底部：全機構持倉排行 ──────────────────────────────────────────────────
+    st.markdown("---")
+    panel_header("全機構持倉排行（yfinance 實時數據）")
+
+    h_sub1, h_sub2 = st.columns(2)
+
+    with h_sub1:
+        st.markdown(
+            '<div style="font-family:\'IBM Plex Mono\';font-size:9px;'
+            'color:#445566;margin-bottom:8px">機構投資者（Institutional Holders）</div>',
+            unsafe_allow_html=True,
+        )
+        if not inst_df.empty:
+            display_cols = [c for c in ["holder", "shares_m", "value_b", "pct_held", "date_reported"]
+                            if c in inst_df.columns]
+            rename_map = {
+                "holder":        "持倉機構",
+                "shares_m":      "持股(M)",
+                "value_b":       "市值($B)",
+                "pct_held":      "佔比(%)",
+                "date_reported": "申報日期",
+            }
+            disp = inst_df[display_cols].rename(columns=rename_map)
+            fmt = {}
+            if "持股(M)" in disp.columns: fmt["持股(M)"] = "{:.1f}"
+            if "市值($B)" in disp.columns: fmt["市值($B)"] = "{:.2f}"
+            if "佔比(%)" in disp.columns: fmt["佔比(%)"] = "{:.2f}"
+            st.dataframe(
+                disp.style.format(fmt),
+                use_container_width=True,
+                height=300,
+            )
+        else:
+            st.info("數據載入中...")
+
+    with h_sub2:
+        mf_df = fetch_tsla_mutualfund_holders()
+        st.markdown(
+            '<div style="font-family:\'IBM Plex Mono\';font-size:9px;'
+            'color:#445566;margin-bottom:8px">共同基金（Mutual Fund Holders）</div>',
+            unsafe_allow_html=True,
+        )
+        if not mf_df.empty:
+            display_cols_mf = [c for c in ["holder", "shares_m", "value_b", "pct_held", "date_reported"]
+                                if c in mf_df.columns]
+            rename_map_mf = {
+                "holder":        "基金名稱",
+                "shares_m":      "持股(M)",
+                "value_b":       "市值($B)",
+                "pct_held":      "佔比(%)",
+                "date_reported": "申報日期",
+            }
+            disp_mf = mf_df[display_cols_mf].rename(columns=rename_map_mf)
+            fmt_mf = {}
+            if "持股(M)" in disp_mf.columns: fmt_mf["持股(M)"] = "{:.1f}"
+            if "市值($B)" in disp_mf.columns: fmt_mf["市值($B)"] = "{:.2f}"
+            if "佔比(%)" in disp_mf.columns: fmt_mf["佔比(%)"] = "{:.2f}"
+            st.dataframe(
+                disp_mf.style.format(fmt_mf),
+                use_container_width=True,
+                height=300,
+            )
+        else:
+            st.info("共同基金數據載入中...")
+
+    st.markdown(
+        '<div style="font-family:\'IBM Plex Mono\';font-size:8px;color:#223344;'
+        'text-align:center;padding:8px;margin-top:8px">'
+        '⚠️ 機構持倉數據來源：Yahoo Finance (yfinance) / SEC 13F 申報 · '
+        '季度延遲約 45 天 · QoQ 變化為估算值 · 僅供研究參考</div>',
+        unsafe_allow_html=True,
+    )
+
+
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 st.markdown("---")
