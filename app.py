@@ -126,6 +126,14 @@ with st.sidebar:
 # ── Data Loading ──────────────────────────────────────────────────────────────
 with st.spinner("⚡ Loading market data..."):
     close_df = fetch_price_data(period=data_period)
+    # ── Debug info (shows on Streamlit Cloud to diagnose data issues) ──────
+    if close_df.empty:
+        st.error("❌ 數據載入失敗 — yfinance 無法取得數據。請稍後重試或刷新頁面。")
+    else:
+        n_cols = len(close_df.columns)
+        has_tsla = "TSLA" in close_df.columns
+        if not has_tsla:
+            st.warning(f"⚠️ 數據已載入 ({n_cols} 欄) 但缺少 TSLA。現有欄位: {list(close_df.columns[:5])}")
     returns = get_returns(close_df)
     corr_matrix = compute_rolling_correlation(returns, window=corr_window)
 
@@ -145,14 +153,15 @@ st.markdown("---")
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 # TSLA price/change
-if not close_df.empty and "TSLA" in close_df.columns:
-    tsla_latest = close_df["TSLA"].dropna().iloc[-1]
-    tsla_prev = close_df["TSLA"].dropna().iloc[-2] if len(close_df) > 1 else tsla_latest
-    tsla_chg = (tsla_latest - tsla_prev) / tsla_prev * 100
-    tsla_vol_20 = get_rolling_volatility(close_df).dropna()
-    tsla_vol_val = tsla_vol_20.iloc[-1] * 100 if not tsla_vol_20.empty else 0
+if not close_df.empty and "TSLA" in close_df.columns and close_df["TSLA"].dropna().shape[0] >= 2:
+    _tsla_s = close_df["TSLA"].dropna()
+    tsla_latest = float(_tsla_s.iloc[-1])
+    tsla_prev   = float(_tsla_s.iloc[-2])
+    tsla_chg    = (tsla_latest - tsla_prev) / tsla_prev * 100 if tsla_prev != 0 else 0.0
+    tsla_vol_20  = get_rolling_volatility(close_df).dropna()
+    tsla_vol_val = float(tsla_vol_20.iloc[-1]) * 100 if not tsla_vol_20.empty else 0.0
 else:
-    tsla_latest, tsla_chg, tsla_vol_val = 0, 0, 0
+    tsla_latest, tsla_chg, tsla_vol_val = 0.0, 0.0, 0.0
 
 with col1:
     color = "#00FF88" if tsla_chg >= 0 else "#FF4444"
@@ -186,7 +195,7 @@ with col5:
 
 with col6:
     if not corr_matrix.empty and "TSLA" in corr_matrix.columns:
-        n_strong = (corr_matrix["TSLA"].abs() > corr_threshold).sum() - 1
+        n_strong = max(0, int((corr_matrix["TSLA"].abs() > corr_threshold).sum()) - 1)
         metric_card("Active TSLA Links", str(n_strong), f"Threshold ρ>{corr_threshold}", "#E31937")
     else:
         metric_card("Active TSLA Links", "—", "—")
