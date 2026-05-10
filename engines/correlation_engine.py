@@ -16,9 +16,12 @@ warnings.filterwarnings("ignore")
 def compute_rolling_correlation(returns: pd.DataFrame, window: int = 20) -> pd.DataFrame:
     """Latest rolling correlation snapshot."""
     if returns.empty or len(returns) < window:
-        return returns.corr()
-    subset = returns.tail(window)
-    return subset.corr()
+        corr = returns.corr()
+    else:
+        subset = returns.tail(window)
+        corr = subset.corr()
+    # Fill NaN with 0 so downstream never sees NaN correlations
+    return corr.fillna(0)
 
 
 def correlation_timeseries(returns: pd.DataFrame, target: str, window: int = 20) -> pd.DataFrame:
