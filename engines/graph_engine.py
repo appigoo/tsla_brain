@@ -38,7 +38,7 @@ def build_correlation_graph(
         if centrality is not None and not centrality.empty:
             row = centrality[centrality["symbol"] == sym]
             if not row.empty:
-                size = 15 + row["eigenvector"].values[0] * 60
+                size = float(15 + row["eigenvector"].values[0] * 60)
 
         is_tsla = sym == "TSLA"
         G.add_node(
@@ -85,10 +85,10 @@ def build_correlation_graph(
             edge_color = "#00D4AA" if corr_val > 0 else "#FF4455"
             G.add_edge(
                 src, tgt,
-                weight=abs(corr_val),
-                corr=corr_val,
+                weight=float(abs(corr_val)),
+                corr=float(corr_val),
                 color=edge_color,
-                width=1 + abs(corr_val) * 5,
+                width=float(1 + abs(corr_val) * 5),
             )
 
     return G
@@ -173,7 +173,7 @@ def render_force_graph(
             y=[float(y0), float(y1), None],
             mode="lines",
             line=dict(
-                width=round(width * (1.8 if is_highlighted else 1.0), 3),
+                width=float(round(float(width) * (1.8 if is_highlighted else 1.0), 3)),
                 color=color if not is_highlighted else "#FFFFFF",
             ),
             opacity=0.85 if is_highlighted else 0.45,
