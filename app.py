@@ -242,7 +242,7 @@ with tab1:
             highlight_node=highlight_node,
             title=f"TSLA Neural Network  |  ρ > {corr_threshold}  |  {G.number_of_edges()} active edges",
         )
-        st.plotly_chart(fig_graph, use_container_width=True)
+        st.plotly_chart(fig_graph, use_container_width=True, key="pc_graph")
 
         # Edge stats below graph
         st.markdown(
@@ -321,7 +321,7 @@ with tab2:
     with col_h:
         panel_header("Correlation Matrix")
         fig_heat = render_correlation_heatmap(corr_matrix)
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, use_container_width=True, key="pc_heat")
 
     with col_ts:
         panel_header("TSLA Correlation Timeseries")
@@ -366,7 +366,7 @@ with tab2:
                 height=380,
                 margin=dict(l=40, r=20, t=50, b=40),
             )
-            st.plotly_chart(fig_ts, use_container_width=True)
+            st.plotly_chart(fig_ts, use_container_width=True, key="pc_ts")
         else:
             st.info("Insufficient data for timeseries.")
 
@@ -444,7 +444,7 @@ with tab3:
                 height=400, margin=dict(l=60, r=20, t=50, b=40),
                 barmode="group",
             )
-            st.plotly_chart(fig_ll, use_container_width=True)
+            st.plotly_chart(fig_ll, use_container_width=True, key="pc_ll")
 
             # Table
             st.markdown(
@@ -496,7 +496,7 @@ with tab3:
                 height=380, margin=dict(l=60, r=20, t=50, b=40),
                 barmode="group",
             )
-            st.plotly_chart(fig_gr, use_container_width=True)
+            st.plotly_chart(fig_gr, use_container_width=True, key="pc_gr")
 
         # Regime History
         panel_header("Regime History")
@@ -532,7 +532,7 @@ with tab3:
                 xaxis=dict(tickfont=dict(color="#E8E0D0", size=9), gridcolor="#1A2A3A"),
                 height=220, margin=dict(l=80, r=20, t=50, b=40),
             )
-            st.plotly_chart(fig_reg, use_container_width=True)
+            st.plotly_chart(fig_reg, use_container_width=True, key="pc_reg")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -544,7 +544,7 @@ with tab4:
     with col_c1:
         panel_header(f"Risk Contagion: TSLA {shock_size}% Shock")
         fig_conta = render_contagion_chart(contagion)
-        st.plotly_chart(fig_conta, use_container_width=True)
+        st.plotly_chart(fig_conta, use_container_width=True, key="pc_conta")
 
     with col_c2:
         panel_header("Volatility Clustering (Annualised)")
@@ -574,7 +574,7 @@ with tab4:
                 legend=dict(font=dict(color="#E8E0D0"), bgcolor="rgba(0,0,0,0.5)"),
                 height=380, margin=dict(l=50, r=20, t=50, b=40),
             )
-            st.plotly_chart(fig_vol, use_container_width=True)
+            st.plotly_chart(fig_vol, use_container_width=True, key="pc_vol")
 
     # Contagion table
     panel_header("Full Contagion Impact Table")
@@ -1017,7 +1017,7 @@ with tab6:
                 showarrow=False,
             )],
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_pie, use_container_width=True, key="pc_pie")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1157,7 +1157,7 @@ with tab7:
                 margin=dict(l=80, r=100, t=60, b=40),
                 barmode="overlay",
             )
-            st.plotly_chart(fig_hold, use_container_width=True)
+            st.plotly_chart(fig_hold, use_container_width=True, key="pc_hold")
 
             # ── 詳細數據表格 ──────────────────────────────────────────────────
             panel_header("持倉數據明細")
@@ -1261,7 +1261,7 @@ with tab7:
                 height=300,
                 margin=dict(l=10, r=10, t=50, b=10),
             )
-            st.plotly_chart(fig_donut, use_container_width=True)
+            st.plotly_chart(fig_donut, use_container_width=True, key="pc_donut")
 
         # ── QoQ 增減排名 ─────────────────────────────────────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1306,7 +1306,7 @@ with tab7:
                 margin=dict(l=70, r=60, t=40, b=20),
                 showlegend=False,
             )
-            st.plotly_chart(fig_qoq, use_container_width=True)
+            st.plotly_chart(fig_qoq, use_container_width=True, key="pc_qoq")
 
         # ── ARK 持倉（每日更新）──────────────────────────────────────────────
         st.markdown("<br>", unsafe_allow_html=True)
