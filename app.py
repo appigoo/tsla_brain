@@ -577,9 +577,11 @@ with tab4:
     panel_header("完整風險傳染衝擊表")
     if not contagion.empty:
         conta_disp = contagion.copy()
-        for col, fmt_str in [("beta_to_tsla", "{:.4f}"), ("expected_impact_pct", "{:+.2f}%"), ("contagion_score", "{:.4f}")]:
+        for col, dec in [("beta_to_tsla", 4), ("contagion_score", 4)]:
             if col in conta_disp.columns:
-                conta_disp[col] = conta_disp[col].apply(lambda x: fmt_str.format(x) if pd.notna(x) else "—")
+                conta_disp[col] = pd.to_numeric(conta_disp[col], errors="coerce").round(dec).astype(str).replace("nan", "—")
+        if "expected_impact_pct" in conta_disp.columns:
+            conta_disp["expected_impact_pct"] = pd.to_numeric(conta_disp["expected_impact_pct"], errors="coerce").round(2).astype(str).replace("nan", "—")
         st.dataframe(conta_disp, use_container_width=True, height=350)
 
     # Correlation breakdown alerts
@@ -1375,10 +1377,10 @@ with tab7:
                 "date_reported": "申報日期",
             }
             disp = inst_df[display_cols].rename(columns=rename_map)
-            # Format numeric columns directly (avoid .style to prevent pyarrow dup-col error)
-            for col, fmt_str in [("持股(M)", "{:.1f}"), ("市值($B)", "{:.2f}"), ("佔比(%)", "{:.2f}")]:
+            # Format numeric columns (vectorised — avoids Series truth-value error)
+            for col, dec in [("持股(M)", 1), ("市值($B)", 2), ("佔比(%)", 2)]:
                 if col in disp.columns:
-                    disp[col] = disp[col].apply(lambda x: fmt_str.format(x) if pd.notna(x) else "—")
+                    disp[col] = pd.to_numeric(disp[col], errors="coerce").round(dec).astype(str).replace("nan", "—")
             st.dataframe(disp, use_container_width=True, height=300)
         else:
             st.info("數據載入中...")
@@ -1401,9 +1403,9 @@ with tab7:
                 "date_reported": "申報日期",
             }
             disp_mf = mf_df[display_cols_mf].rename(columns=rename_map_mf)
-            for col, fmt_str in [("持股(M)", "{:.1f}"), ("市值($B)", "{:.2f}"), ("佔比(%)", "{:.2f}")]:
+            for col, dec in [("持股(M)", 1), ("市值($B)", 2), ("佔比(%)", 2)]:
                 if col in disp_mf.columns:
-                    disp_mf[col] = disp_mf[col].apply(lambda x: fmt_str.format(x) if pd.notna(x) else "—")
+                    disp_mf[col] = pd.to_numeric(disp_mf[col], errors="coerce").round(dec).astype(str).replace("nan", "—")
             st.dataframe(disp_mf, use_container_width=True, height=300)
         else:
             st.info("共同基金數據載入中...")
