@@ -1367,21 +1367,13 @@ with tab7:
             unsafe_allow_html=True,
         )
         if not inst_df.empty:
-            display_cols = [c for c in ["holder", "shares_m", "value_b", "pct_held", "date_reported"]
-                            if c in inst_df.columns]
-            rename_map = {
-                "holder":        "持倉機構",
-                "shares_m":      "持股(M)",
-                "value_b":       "市值($B)",
-                "pct_held":      "佔比(%)",
-                "date_reported": "申報日期",
-            }
-            disp = inst_df[display_cols].rename(columns=rename_map)
-            # Format numeric columns (vectorised — avoids Series truth-value error)
-            for col, dec in [("持股(M)", 1), ("市值($B)", 2), ("佔比(%)", 2)]:
-                if col in disp.columns:
-                    disp[col] = pd.to_numeric(disp[col], errors="coerce").round(dec).astype(str).replace("nan", "—")
-            st.dataframe(disp, use_container_width=True, height=300)
+            inst_rows = []
+            for _, r in inst_df.iterrows():
+                def _f(key, dec):
+                    try: return round(float(r[key]), dec) if key in r.index and r[key]==r[key] else "—"
+                    except: return "—"
+                inst_rows.append({"持倉機構": str(r.get("holder","")),"持股(M)": _f("shares_m",1),"市值($B)": _f("value_b",2),"佔比(%)": _f("pct_held",2),"申報日期": str(r.get("date_reported","N/A"))})
+            st.dataframe(pd.DataFrame(inst_rows), use_container_width=True, height=300)
         else:
             st.info("數據載入中...")
 
@@ -1393,20 +1385,13 @@ with tab7:
             unsafe_allow_html=True,
         )
         if not mf_df.empty:
-            display_cols_mf = [c for c in ["holder", "shares_m", "value_b", "pct_held", "date_reported"]
-                                if c in mf_df.columns]
-            rename_map_mf = {
-                "holder":        "基金名稱",
-                "shares_m":      "持股(M)",
-                "value_b":       "市值($B)",
-                "pct_held":      "佔比(%)",
-                "date_reported": "申報日期",
-            }
-            disp_mf = mf_df[display_cols_mf].rename(columns=rename_map_mf)
-            for col, dec in [("持股(M)", 1), ("市值($B)", 2), ("佔比(%)", 2)]:
-                if col in disp_mf.columns:
-                    disp_mf[col] = pd.to_numeric(disp_mf[col], errors="coerce").round(dec).astype(str).replace("nan", "—")
-            st.dataframe(disp_mf, use_container_width=True, height=300)
+            mf_rows = []
+            for _, r in mf_df.iterrows():
+                def _f2(key, dec):
+                    try: return round(float(r[key]), dec) if key in r.index and r[key]==r[key] else "—"
+                    except: return "—"
+                mf_rows.append({"基金名稱": str(r.get("holder","")),"持股(M)": _f2("shares_m",1),"市值($B)": _f2("value_b",2),"佔比(%)": _f2("pct_held",2),"申報日期": str(r.get("date_reported","N/A"))})
+            st.dataframe(pd.DataFrame(mf_rows), use_container_width=True, height=300)
         else:
             st.info("共同基金數據載入中...")
 
